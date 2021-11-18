@@ -10,11 +10,13 @@ import (
 // rsa.GenerateKeys: generate RSA keys
 // params: bit length of keys
 // returns: public key, private key, error
-func GenerateKeys(bitlen int) (*rsa.PrivateKey, error) {
+func GenerateKeys(bitlen int, p *big.Int, q *big.Int) (*rsa.PrivateKey, error) {
 	// if bitlen is 0, error
 	if bitlen == 0 {
 		return nil, fmt.Errorf("rsa.GenerateKeys error: bitlen must be over 0")
 	}
+
+	var err error
 
 	retries := 0
 	for ; ; retries++ {
@@ -23,16 +25,26 @@ func GenerateKeys(bitlen int) (*rsa.PrivateKey, error) {
 			return nil, fmt.Errorf("rsa.GenerateKeys error: Too many retries")
 		}
 
-		// make p a random prime number
-		p, err := rand.Prime(rand.Reader, bitlen/2)
-		if err != nil {
-			return nil, fmt.Errorf("rsa.GenerateKeys error: %w", err)
+		// if p is 0 then randomize it
+		// or it is not prime
+		if p.Cmp(big.NewInt(0)) == 0 || !p.ProbablyPrime(10) {
+			fmt.Println("generating p")
+			// make p a random prime number
+			p, err = rand.Prime(rand.Reader, bitlen/2)
+			if err != nil {
+				return nil, fmt.Errorf("rsa.GenerateKeys error: %w", err)
+			}
 		}
 
-		// make q a random prime number
-		q, err := rand.Prime(rand.Reader, bitlen/2)
-		if err != nil {
-			return nil, fmt.Errorf("rsa.GenerateKeys error: %w", err)
+		// if q is 0 then randomize it
+		// or it is not prime
+		if q.Cmp(big.NewInt(0)) == 0 || !q.ProbablyPrime(10) {
+			fmt.Println("generating q")
+			// make p a random prime number
+			q, err = rand.Prime(rand.Reader, bitlen/2)
+			if err != nil {
+				return nil, fmt.Errorf("rsa.GenerateKeys error: %w", err)
+			}
 		}
 
 		// n is p * q

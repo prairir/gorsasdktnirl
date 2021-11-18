@@ -3,6 +3,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"math/big"
 	"os"
 
 	"github.com/prairir/gorsasdktnirl/pkg/pem"
@@ -19,6 +20,8 @@ func Execute() {
 	size := genCmd.Int("size", 0, "size of key")
 	outFilePriv := genCmd.String("out-file-priv", "stdout", "output file for private key PEM")
 	outFilePub := genCmd.String("out-file-pub", "stdout", "output file for public key PEM")
+	p := genCmd.Int64("p", 0, "prime number for RSA, If 0 or not a prime then will be randomly generated")
+	q := genCmd.Int64("q", 0, "prime number for RSA, If 0 or not a prime then will be randomly generated")
 
 	encCmd := flag.NewFlagSet("encrypt", flag.ExitOnError)
 	var message string
@@ -30,7 +33,7 @@ func Execute() {
 	switch os.Args[1] {
 	case "gen":
 		genCmd.Parse(os.Args[2:])
-		key, err := rsa.GenerateKeys(*size)
+		key, err := rsa.GenerateKeys(*size, big.NewInt(*p), big.NewInt(*q))
 		if err != nil {
 			fmt.Printf("%s\n", err)
 			os.Exit(1)
