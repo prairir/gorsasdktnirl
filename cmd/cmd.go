@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/prairir/gorsasdktnirl/pkg/pem"
+	"github.com/prairir/gorsasdktnirl/pkg/rsa"
 )
 
 func Execute() {
@@ -14,6 +17,8 @@ func Execute() {
 
 	genCmd := flag.NewFlagSet("gen", flag.ExitOnError)
 	size := genCmd.Int("size", 0, "size of key")
+	outFilePriv := genCmd.String("out-file-priv", "stdout", "output file for private key PEM")
+	outFilePub := genCmd.String("out-file-pub", "stdout", "output file for public key PEM")
 
 	encCmd := flag.NewFlagSet("encrypt", flag.ExitOnError)
 	var message string
@@ -24,9 +29,24 @@ func Execute() {
 
 	switch os.Args[1] {
 	case "gen":
-		fmt.Println("gen")
 		genCmd.Parse(os.Args[2:])
-		fmt.Println(*size)
+		key, err := rsa.GenerateKeys(*size)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+		err = pem.GenPemRSAPrivate(key, *outFilePriv)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
+		err = pem.GenPemRSAPublic(&key.PublicKey, *outFilePub)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
 	case "encrypt":
 		fmt.Println("encrypt")
 		encCmd.Parse(os.Args[2:])
