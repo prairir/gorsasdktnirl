@@ -81,7 +81,6 @@ func Execute() {
 		decCmd.Parse(os.Args[2:])
 		priv, err := pem.ParseRSAPrivateKeyPem(keyfile)
 		if err != nil {
-			fmt.Printf("FUCK\n%v\n", priv)
 			fmt.Printf("%s\n", err)
 			os.Exit(1)
 		}
