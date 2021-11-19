@@ -1,6 +1,7 @@
 package rsa
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa" // even though im importing it, im just using the struct
 	"fmt"
@@ -91,4 +92,93 @@ func GenerateKeys(bitlen int, p *big.Int, q *big.Int) (*rsa.PrivateKey, error) {
 
 		return &key, nil
 	}
+}
+
+func Encrypt(pub *rsa.PublicKey, message []byte) ([]byte, error) {
+	// the specification for this is in RFC2313
+
+	// length of key
+	// divide by 8 octets
+	keyLength := (pub.N.BitLen() + 7) / 8
+	// -11 for the octet length
+	if len(message) > keyLength-11 {
+		return nil, fmt.Errorf("rsa.Encrypt error: message too long")
+	}
+
+	// we have to format the message into an encryption block
+	// it has to take the format
+	// EB = 00 || BT || PS || 00 || D
+	// EB is the encryption block
+	// BT is block type
+	// PS is padding string
+	// D is data
+	//
+	// BT of 02 is reccomended by RFC2313 as it is the most secure for public key stuff
+
+	// PS length is k - 3 - ||D||
+	padStrLen := keyLength - len(message) - 3
+	encBlock := make([]byte, keyLength)
+	encBlock[1] = 0x02
+
+	// Fill PS with random garbage
+	// start at 2 because were skipping the first 2 sector
+	for i := 2; i < 2+padStrLen; {
+		_, err := rand.Read(encBlock[i : i+1]) // only read into the encBlock for the sector we want
+		if err != nil {
+			return nil, fmt.Errorf("rsa.Encrypt error: %w", err)
+		}
+		// as the block is filled with 0x00, we need to make sure the read was filled with something that isnt that
+		// if it isnt filled with it, move onto the next sector
+		if encBlock[i] != 0x00 {
+			i++
+		}
+	}
+
+	// put a 0x00 after the pad string
+	encBlock[2+padStrLen] = 0x00
+
+	// copy the message into the rest of the encrypt block
+	copy(encBlock[3+padStrLen:], message)
+
+	// the encrypt block is now finished being setup
+	// message as big.Int
+	m := new(big.Int).SetBytes(encBlock)
+
+	// do the actual encryption stuff
+	cipher := new(big.Int)
+	cipher.Exp(m, big.NewInt(int64(pub.E)), pub.N)
+
+	// we gotta pad the cipher with 0x00 to the left
+	encMessage := make([]byte, keyLength) // this generates a []byte with 0x00 in each element
+	copy(encMessage[(keyLength-len(cipher.Bytes())):], cipher.Bytes())
+	return encMessage, nil
+}
+
+func Decrypt(priv *rsa.PrivateKey, cipher []byte) ([]byte, error) {
+	// same thing as in rsa.Encrypt
+	keyLength := (priv.N.BitLen() + 7) / 8
+	if len(cipher) != keyLength {
+		return nil, fmt.Errorf("rsa.Decrypt error: cipher length has to match private key length")
+	}
+
+	// make the cipher into big.Int
+	c := new(big.Int).SetBytes(cipher)
+	m := new(big.Int).Exp(c, priv.D, priv.N) // the actually decryption
+
+	message := make([]byte, keyLength)
+	copy(message[keyLength-len(m.Bytes()):], m.Bytes())
+
+	if message[0] != 0x00 {
+		return nil, fmt.Errorf("rsa.Decrypt error: message sector 1 needs to be 0x00")
+	}
+	if message[1] != 0x02 {
+		return nil, fmt.Errorf("rsa.Decrypt error: message sector 2 needs to be 0x02")
+	}
+
+	// find the index of 0x00
+	endPadding := bytes.IndexByte(message[2:], 0x00) + 2
+	if endPadding < 2 {
+		return nil, fmt.Errorf("rsa.Decrypt error: no end padding")
+	}
+	return message[endPadding+1:], nil
 }

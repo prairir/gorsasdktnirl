@@ -23,12 +23,19 @@ func Execute() {
 	p := genCmd.Int64("p", 0, "prime number for RSA, If 0 or not a prime then will be randomly generated")
 	q := genCmd.Int64("q", 0, "prime number for RSA, If 0 or not a prime then will be randomly generated")
 
+	var infile string
+	var keyfile string
+	var outfile string
+
 	encCmd := flag.NewFlagSet("encrypt", flag.ExitOnError)
-	var message string
-	encCmd.StringVar(&message, "message", "", "message to encrypt")
+	encCmd.StringVar(&infile, "infile", "", "the contents of this file will be encrypted")
+	encCmd.StringVar(&keyfile, "public-key", "", "RSA public key to encrypt message")
+	encCmd.StringVar(&outfile, "outfile", "", "write the encrypted message to a file")
 
 	decCmd := flag.NewFlagSet("decrypt", flag.ExitOnError)
-	decCmd.StringVar(&message, "message", "", "message to encrypt")
+	decCmd.StringVar(&keyfile, "private-key", "", "RSA private key to decrypt message")
+	decCmd.StringVar(&outfile, "outfile", "", "write the decrypted message to a file")
+	decCmd.StringVar(&infile, "infile", "", "the contents of this file will be decrypted")
 
 	switch os.Args[1] {
 	case "gen":
@@ -51,13 +58,52 @@ func Execute() {
 		}
 
 	case "encrypt":
-		fmt.Println("encrypt")
 		encCmd.Parse(os.Args[2:])
-		fmt.Println(message)
+		pub, err := pem.ParseRSAPublicKeyPem(keyfile)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
+		message, err := os.ReadFile(infile)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
+		encMessage, err := rsa.Encrypt(pub, message)
+		if outfile != "" {
+			os.WriteFile(outfile, encMessage, 0666)
+		} else {
+			fmt.Printf("%b\n", encMessage)
+		}
 	case "decrypt":
-		fmt.Println("decrypt")
 		decCmd.Parse(os.Args[2:])
-		fmt.Println(message)
+		priv, err := pem.ParseRSAPrivateKeyPem(keyfile)
+		if err != nil {
+			fmt.Printf("FUCK\n%v\n", priv)
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
+		cipher, err := os.ReadFile(infile)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
+		message, err := rsa.Decrypt(priv, cipher)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
+		if outfile != "" {
+			os.WriteFile(outfile, message, 0666)
+		} else {
+			fmt.Printf("%s\n", string(message))
+		}
+
 	default:
 		fmt.Println("expected 'gen', 'encrypt', or 'decrypt' subcommands")
 		os.Exit(1)
