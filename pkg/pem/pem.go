@@ -8,9 +8,14 @@ import (
 	"os"
 )
 
+// pem.GenPemRSAPrivate: generate a pem private key with PKCS1 format and write to a file
+// params: private key, file to write it to
+// returns: error
 func GenPemRSAPrivate(key *rsa.PrivateKey, outfile string) error {
 	var out *os.File
 	var err error
+	// if the file is stdout, write to stdout
+	// else create the file
 	if outfile == "stdout" {
 		out = os.Stdout
 	} else {
@@ -19,10 +24,14 @@ func GenPemRSAPrivate(key *rsa.PrivateKey, outfile string) error {
 			return fmt.Errorf("pem.GenPemRSAPrivate error: %w", err)
 		}
 	}
+
+	// make the rsa private key
 	pemkey := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
+
+	// encode it
 	err = pem.Encode(out, pemkey)
 	if err != nil {
 		return fmt.Errorf("pem.GenPemRSAPrivate error: %w", err)
@@ -30,9 +39,14 @@ func GenPemRSAPrivate(key *rsa.PrivateKey, outfile string) error {
 	return nil
 }
 
+// pem.GenPemRSAPublic: generate a pem public key with PKIX format and write to a file
+// params: public key, file to write it to
+// returns: error
 func GenPemRSAPublic(key *rsa.PublicKey, outfile string) error {
 	var out *os.File
 	var err error
+	// if the file is stdout, write to stdout
+	// else create the file
 	if outfile == "stdout" {
 		out = os.Stdout
 	} else {
@@ -42,14 +56,19 @@ func GenPemRSAPublic(key *rsa.PublicKey, outfile string) error {
 		}
 	}
 
+	// make the pem from public key
 	pemBytes, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
 		return fmt.Errorf("pem.GenPemRSAPublic error: %w", err)
 	}
+
+	// make whole pem
 	pemkey := &pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: pemBytes,
 	}
+
+	// encode into file
 	err = pem.Encode(out, pemkey)
 	if err != nil {
 		return fmt.Errorf("pem.GenPemRSAPublic error: %w", err)
@@ -57,6 +76,9 @@ func GenPemRSAPublic(key *rsa.PublicKey, outfile string) error {
 	return nil
 }
 
+// rsa.readPem: read the pem file
+// params: file to read from
+// returns: pem block, error
 func readPem(infile string) (*pem.Block, error) {
 	// read in the file
 	data, err := os.ReadFile(infile)
@@ -72,6 +94,9 @@ func readPem(infile string) (*pem.Block, error) {
 	return block, nil
 }
 
+// rsa.ParseRSAPublicKeyPem: parse pem and return rsa public key from it
+// params: file to read from
+// returns: public key, error
 func ParseRSAPublicKeyPem(infile string) (*rsa.PublicKey, error) {
 	block, err := readPem(infile)
 	// if err isnt nil
@@ -95,6 +120,9 @@ func ParseRSAPublicKeyPem(infile string) (*rsa.PublicKey, error) {
 	}
 }
 
+// rsa.ParseRSAPrivateKeyPem: parse pem and return rsa private key from it
+// params: file to read from
+// returns: private key, error
 func ParseRSAPrivateKeyPem(infile string) (*rsa.PrivateKey, error) {
 	block, err := readPem(infile)
 	// if err isnt nil

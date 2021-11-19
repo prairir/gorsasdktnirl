@@ -29,7 +29,6 @@ func GenerateKeys(bitlen int, p *big.Int, q *big.Int) (*rsa.PrivateKey, error) {
 		// if p is 0 then randomize it
 		// or it is not prime
 		if p.Cmp(big.NewInt(0)) == 0 || !p.ProbablyPrime(10) {
-			fmt.Println("generating p")
 			// make p a random prime number
 			p, err = rand.Prime(rand.Reader, bitlen/2)
 			if err != nil {
@@ -40,7 +39,6 @@ func GenerateKeys(bitlen int, p *big.Int, q *big.Int) (*rsa.PrivateKey, error) {
 		// if q is 0 then randomize it
 		// or it is not prime
 		if q.Cmp(big.NewInt(0)) == 0 || !q.ProbablyPrime(10) {
-			fmt.Println("generating q")
 			// make p a random prime number
 			q, err = rand.Prime(rand.Reader, bitlen/2)
 			if err != nil {
@@ -94,6 +92,10 @@ func GenerateKeys(bitlen int, p *big.Int, q *big.Int) (*rsa.PrivateKey, error) {
 	}
 }
 
+// rsa.Encrypt: encrypt a message with a public key
+// This follows RFC2313
+// params: public key, message
+// returns: cipher or error
 func Encrypt(pub *rsa.PublicKey, message []byte) ([]byte, error) {
 	// the specification for this is in RFC2313
 
@@ -154,6 +156,10 @@ func Encrypt(pub *rsa.PublicKey, message []byte) ([]byte, error) {
 	return encMessage, nil
 }
 
+// rsa.Decrypt: Decrypt a cipher with a private key
+// This follows RFC2313
+// params: private key, cipher
+// returns: message or error
 func Decrypt(priv *rsa.PrivateKey, cipher []byte) ([]byte, error) {
 	// same thing as in rsa.Encrypt
 	keyLength := (priv.N.BitLen() + 7) / 8

@@ -18,8 +18,8 @@ func Execute() {
 
 	genCmd := flag.NewFlagSet("gen", flag.ExitOnError)
 	size := genCmd.Int("size", 0, "size of key")
-	outFilePriv := genCmd.String("out-file-priv", "stdout", "output file for private key PEM")
-	outFilePub := genCmd.String("out-file-pub", "stdout", "output file for public key PEM")
+	outFilePriv := genCmd.String("outfile-priv", "stdout", "output file for private key PEM")
+	outFilePub := genCmd.String("outfile-pub", "stdout", "output file for public key PEM")
 	p := genCmd.Int64("p", 0, "prime number for RSA, If 0 or not a prime then will be randomly generated")
 	q := genCmd.Int64("q", 0, "prime number for RSA, If 0 or not a prime then will be randomly generated")
 
